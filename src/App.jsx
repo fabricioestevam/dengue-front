@@ -55,7 +55,7 @@ const RISCO = (casos) => {
 
 const SE_ATUAL = Math.ceil(
   (new Date() - new Date(new Date().getFullYear(), 0, 1)) /
-    (7 * 86400000)
+  (7 * 86400000)
 );
 
 function Spinner() {
@@ -79,6 +79,8 @@ function Spinner() {
       />
 
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+
         @keyframes spin {
           to {
             transform: rotate(360deg);
@@ -184,6 +186,7 @@ function KpiCard({ label, value, sub, accent }) {
 }
 
 function PainelHistorico({ historico, loading }) {
+  console.log("DADOS DA API:", historico);
   if (loading) return <Spinner />;
 
   if (!historico.length) {
@@ -245,75 +248,89 @@ function PainelHistorico({ historico, loading }) {
         </thead>
 
         <tbody>
-          {historico.map((row, i) => (
-            <tr
-              key={i}
-              style={{
-                borderBottom: `1px solid ${CORES.border}`,
-              }}
-            >
-              <td
+          {historico.map((row, i) => {
+            if (!row) return null;
+
+            return (
+              <tr
+                key={i}
                 style={{
-                  padding: "14px 16px",
-                  fontWeight: 600,
-                  color: CORES.text,
+                  borderBottom: `1px solid ${CORES.border}`,
                 }}
               >
-                {row.ano}
-              </td>
+                {/* 1. Coluna do Ano */}
+                <td
+                  style={{
+                    padding: "14px 16px",
+                    fontWeight: 600,
+                    color: CORES.text,
+                  }}
+                >
+                  {row.ANO}
+                </td>
 
-              <td
-                style={{
-                  padding: "14px 16px",
-                  color: CORES.textSoft,
-                }}
-              >
-                {String(row.semana).padStart(2, "0")}
-              </td>
+                {/* 2. Coluna da Semana */}
+                <td
+                  style={{
+                    padding: "14px 16px",
+                    color: CORES.textSoft,
+                  }}
+                >
+                  {String(row.SEMANA || 0).padStart(2, "0")}
+                </td>
 
-              <td
-                style={{
-                  padding: "14px 16px",
-                  fontWeight: 700,
-                  color: CORES.text,
-                }}
-              >
-                {row.casos.toLocaleString("pt-BR")}
-              </td>
+                {/* 3. Coluna de Casos */}
+                <td
+                  style={{
+                    padding: "14px 16px",
+                    fontWeight: 700,
+                    color: CORES.text,
+                  }}
+                >
+                  {row.CASOS?.toLocaleString("pt-BR") || "0"}
+                </td>
 
-              <td
-                style={{
-                  padding: "14px 16px",
-                  color: CORES.textSoft,
-                }}
-              >
-                {row.temp_media_c?.toFixed(1) || "—"}°C
-              </td>
+                {/* 4. Coluna de Temperatura */}
+                <td
+                  style={{
+                    padding: "14px 16px",
+                    color: CORES.textSoft,
+                  }}
+                >
+                  {row.TEMP_MEDIA_C?.toFixed(1) || "—"}°C
+                </td>
 
-              <td
-                style={{
-                  padding: "14px 16px",
-                  color: CORES.textSoft,
-                }}
-              >
-                {row.precipitacao_mm?.toFixed(1) || "—"}mm
-              </td>
+                {/* 5. Coluna de Precipitação */}
+                <td
+                  style={{
+                    padding: "14px 16px",
+                    color: CORES.textSoft,
+                  }}
+                >
+                  {row.PRECIPITACAO_MM?.toFixed(1) || "—"}mm
+                </td>
 
-              <td
-                style={{
-                  padding: "14px 16px",
-                  color: CORES.textSoft,
-                }}
-              >
-                {Math.round(row.umidade_media || 0)}%
-              </td>
+                {/* 6. COLUNA DA UMIDADE (A QUE ESTAVA FALTANDO) */}
+                <td
+                  style={{
+                    padding: "14px 16px",
+                    color: CORES.textSoft,
+                  }}
+                >
+                  {Math.round(row.UMIDADE_MEDIA || row.UMIDADE || 0)}%
+                </td>
 
-              <td style={{ padding: "14px 16px" }}>
-                <Badge risco={row.casos} />
-              </td>
-            </tr>
-          ))}
+                {/* 7. Coluna do Badge de Risco */}
+                <td style={{ padding: "14px 16px" }}>
+                  <Badge risco={row.CASOS || 0} />
+                </td>
+
+
+              </tr>
+            );
+          })}
         </tbody>
+
       </table>
     </div>
   );
@@ -349,13 +366,20 @@ function FormularioPredicao({ onPredicao }) {
         },
 
         body: JSON.stringify({
-          precipitacao_mm: parseFloat(form.precipitacao_mm),
-          temp_media_c: parseFloat(form.temp_media_c),
-          umidade_media: parseFloat(form.umidade_media),
-          ano: parseInt(form.ano),
-          semana: parseInt(form.semana),
+          precipitacao_mm: parseFloat(form.precipitacao_mm || form.PRECIPITACAO_MM || 10.5),
+          temp_media_c: parseFloat(form.temp_media_c || form.TEMP_MEDIA_C || 25.8),
+          umidade_media: parseFloat(form.umidade_media || form.UMIDADE_MEDIA || 81.0),
+          ano: parseInt(form.ano || form.ANO || new Date().getFullYear()),
+          semana: parseInt(form.semana || form.SEMANA || 23),
         }),
+
+
       });
+
+      if (!res.ok) {
+        throw new Error("Erro ao gerar previsão");
+      }
+
 
       if (!res.ok) {
         throw new Error("Erro ao gerar previsão");
@@ -380,6 +404,7 @@ function FormularioPredicao({ onPredicao }) {
     fontSize: 14,
     outline: "none",
     boxSizing: "border-box",
+    fontFamily: '"IBM Plex Mono", monospace',
   };
 
   return (
@@ -501,19 +526,16 @@ function FormularioPredicao({ onPredicao }) {
           padding: "13px",
           borderRadius: 8,
           border: "none",
-          background: loading
-            ? "#BFC7D4"
-            : CORES.primary,
+          background: loading ? "#BFC7D4" : CORES.primary,
           color: "white",
           fontSize: 14,
           fontWeight: 600,
           cursor: "pointer",
           transition: ".2s",
+          fontFamily: '"IBM Plex Mono", monospace',
         }}
       >
-        {loading
-          ? "Gerando previsão..."
-          : "Gerar previsão"}
+        {loading ? "Gerando previsão..." : "Gerar previsão"}
       </button>
     </div>
   );
@@ -563,8 +585,7 @@ function ResultadoPredicao({ resultado }) {
           marginBottom: 18,
         }}
       >
-        casos previstos para SE{" "}
-        {resultado.semana}/{resultado.ano}
+        casos previstos para SE {resultado.semana}/{resultado.ano}
       </div>
 
       <Badge risco={resultado.casos_preditos} />
@@ -609,7 +630,7 @@ export default function App() {
       if (res.ok) {
         setHistorico(await res.json());
       }
-    } catch {}
+    } catch { }
 
     setLoadingHistorico(false);
   }, []);
@@ -623,7 +644,7 @@ export default function App() {
       if (res.ok) {
         setPredicoes(await res.json());
       }
-    } catch {}
+    } catch { }
   }, []);
 
   useEffect(() => {
@@ -633,14 +654,14 @@ export default function App() {
   }, []);
 
   const totalCasos = historico.reduce(
-    (a, h) => a + h.casos,
+    (a, h) => a + (h?.CASOS || 0),
     0
   );
 
   const pico = historico.length
     ? historico.reduce((a, h) =>
-        h.casos > a.casos ? h : a
-      )
+      (h?.CASOS || 0) > (a?.CASOS || 0) ? h : a
+    )
     : null;
 
   const abas = [
@@ -661,8 +682,7 @@ export default function App() {
         minHeight: "100vh",
         background: CORES.bg,
         padding: "24px",
-        fontFamily:
-          "Inter, system-ui, sans-serif",
+        fontFamily: '"IBM Plex Mono", monospace',
       }}
     >
       <div
@@ -671,8 +691,6 @@ export default function App() {
           margin: "0 auto",
         }}
       >
-        {/* HEADER */}
-
         <div
           style={{
             background: CORES.surface,
@@ -723,8 +741,7 @@ export default function App() {
                   lineHeight: 1.1,
                 }}
               >
-                Análise Preditiva de 
-                Casos de Dengue
+                Análise Preditiva de Casos de Dengue
               </div>
 
               <div
@@ -733,8 +750,7 @@ export default function App() {
                   fontSize: 14,
                 }}
               >
-                Monitoramento climático e
-                previsão epidemiológica
+                Monitoramento climático e previsão epidemiológica
               </div>
             </div>
 
@@ -750,11 +766,10 @@ export default function App() {
                     ? CORES.success
                     : CORES.danger,
 
-                border: `1px solid ${
-                  apiStatus === "online"
-                    ? "#B7E4D3"
-                    : "#F6C7C7"
-                }`,
+                border: `1px solid ${apiStatus === "online"
+                  ? "#B7E4D3"
+                  : "#F6C7C7"
+                  }`,
 
                 borderRadius: 999,
                 padding: "8px 14px",
@@ -766,8 +781,6 @@ export default function App() {
             </div>
           </div>
         </div>
-
-        {/* KPIS */}
 
         <div
           style={{
@@ -787,23 +800,22 @@ export default function App() {
 
           <KpiCard
             label="Casos acumulados"
-            value={totalCasos.toLocaleString(
-              "pt-BR"
-            )}
+            value={totalCasos.toLocaleString("pt-BR")}
             sub="base histórica"
             accent={CORES.danger}
           />
 
           <KpiCard
             label="Pico histórico"
-            value={pico?.casos || 0}
+            value={pico?.CASOS?.toLocaleString("pt-BR") || 0}
             sub={
               pico
-                ? `SE ${pico.semana}/${pico.ano}`
+                ? `SE ${String(pico.SEMANA).padStart(2, "0")}/${pico.ANO}`
                 : "sem dados"
             }
             accent={CORES.warning}
           />
+
 
           <KpiCard
             label="Previsões"
@@ -812,8 +824,6 @@ export default function App() {
             accent={CORES.secondary}
           />
         </div>
-
-        {/* TABS */}
 
         <div
           style={{
@@ -852,14 +862,13 @@ export default function App() {
                 fontSize: 14,
                 fontWeight: 600,
                 cursor: "pointer",
+                fontFamily: '"IBM Plex Mono", monospace',
               }}
             >
               {a.label}
             </button>
           ))}
         </div>
-
-        {/* DASHBOARD */}
 
         {aba === "dashboard" && (
           <div
@@ -902,8 +911,7 @@ export default function App() {
                   color: CORES.textSoft,
                 }}
               >
-                Dados históricos integrados
-                ao sistema
+                Dados históricos integrados ao sistema
               </div>
             </div>
 
@@ -914,14 +922,11 @@ export default function App() {
           </div>
         )}
 
-        {/* PREVISÃO */}
-
         {aba === "previsao" && (
           <div
             style={{
               display: "grid",
-              gridTemplateColumns:
-                "1fr 1fr",
+              gridTemplateColumns: "1fr 1fr",
               gap: 16,
             }}
           >
@@ -962,9 +967,7 @@ export default function App() {
                     lineHeight: 1.6,
                   }}
                 >
-                  Informe os dados climáticos
-                  atuais para gerar uma nova
-                  previsão epidemiológica.
+                  Informe os dados climáticos atuais para gerar uma nova previsão epidemiológica.
                 </div>
 
                 <FormularioPredicao
@@ -998,16 +1001,12 @@ export default function App() {
                     lineHeight: 1.7,
                   }}
                 >
-                  Preencha os dados
-                  climáticos para visualizar a
-                  previsão epidemiológica.
+                  Preencha os dados climáticos para visualizar a previsão epidemiológica.
                 </div>
               )}
             </div>
           </div>
         )}
-
-        {/* FOOTER */}
 
         <div
           style={{
@@ -1026,18 +1025,16 @@ export default function App() {
               color: CORES.textSoft,
             }}
           >
-            Ridge Regression • INMET +
-            SINAN
+            Ridge Regression • INMET + SINAN
           </div>
 
           <div
             style={{
               fontSize: 12,
-              color: CORES.textSoft,
+              color: CORES.textSoft
             }}
           >
-            Plataforma integrada de
-            monitoramento epidemiológico
+            Plataforma integrada de monitoramento epidemiológico
           </div>
         </div>
       </div>
